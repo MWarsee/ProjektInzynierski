@@ -1,0 +1,8 @@
+{
+  "dependencies": [
+    "asio",
+    "crow",
+    "nlohmann-json",
+    "boost-asio"
+  ]
+}
