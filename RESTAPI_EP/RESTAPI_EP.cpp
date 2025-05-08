@@ -16,18 +16,9 @@
 #include "breezySLAM/cpp/Position.hpp"
 
 static const int MAP_SIZE_PIXELS = 800;
-static const double MAP_SIZE_METERS = 10;
-
-static const int SCAN_SIZE = 666;
-
+static const double MAP_SIZE_METERS = 15;
 
 using json = nlohmann::json;
-
-int coords2index(double x, double y)
-{
-    return y * MAP_SIZE_PIXELS + x;
-}
-
 
 int mm2pix(double mm)
 {
@@ -61,10 +52,12 @@ int main() {
         return -1;
     }
 	LD20 laser(0, 0); // Inicjalizacja modelu lasera
-    SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, rand());
-    slam->map_quality = 255;
-	slam->hole_width_mm = 350;
-	PoseChange pose_change(0, 0, 0);
+    SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, 100);
+    ((RMHC_SLAM*)slam)->map_quality = 10;
+    ((RMHC_SLAM*)slam)->hole_width_mm = 500;
+    ((RMHC_SLAM*)slam)->max_search_iter = 4000;
+    ((RMHC_SLAM*)slam)->sigma_xy_mm = 200;
+    ((RMHC_SLAM*)slam)->sigma_theta_degrees = 45;
     // Tworzenie obiektu do obs³ugi danych z lidara
     SLAMHandler lidarHandler(lidar_drv,slam);
     lidarHandler.Start();
@@ -139,7 +132,7 @@ int main() {
                     }
                     if (!thread_info->running) break;
                     conn.send_text(response.dump());
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(166));
                 }
             }
             catch (const std::exception& e) {

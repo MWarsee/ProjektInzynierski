@@ -141,7 +141,7 @@ public:
 	*
 	*/
 	LD20(int detection_margin = 0, float offset_mm = 0) :
-		Laser(668, 6, 360, 4000, detection_margin, offset_mm) {
+		Laser(665, 6, 360, 2000, detection_margin, offset_mm) {
 	}
 	/**
 	* Builds an empty LD20 object (all parameters zero).

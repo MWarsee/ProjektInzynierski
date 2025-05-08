@@ -50,38 +50,49 @@ public:
 	}
 
 private:
-    void Run() {
-       ldlidar::Points2D laserScanPoints;
-       while (isRunning_ && ldlidar::LDLidarDriverLinuxInterface::Ok()) {
-           switch (lidarDriver_->GetLaserScanData(laserScanPoints, 2000)) {
-           case ldlidar::LidarStatus::NORMAL: 
-           {
-               std::lock_guard<std::mutex> lock(dataMutex_);
-               laserScanPoints_ = laserScanPoints;
+    void Run() {  
+       ldlidar::Points2D laserScanPoints;  
+	   std::vector<int> oldDistances;
+	   bool firstLoad = false;
+       while (isRunning_ && ldlidar::LDLidarDriverLinuxInterface::Ok()) {  
+           switch (lidarDriver_->GetLaserScanData(laserScanPoints, 2000)) {  
+           case ldlidar::LidarStatus::NORMAL:  
+           {  
+               std::lock_guard<std::mutex> lock(dataMutex_);  
+               if (laserScanPoints.size() > 666) {  
+                   laserScanPoints.resize(666);  
+               }  
+               laserScanPoints_ = laserScanPoints;  
 
-               // Convert laserScanPoints to an array of distances (int*)
-               std::vector<int> distances;
-               distances.reserve(laserScanPoints.size());
-               for (const auto& point : laserScanPoints) {
-                   distances.push_back(static_cast<int>(point.distance));
+               // Convert laserScanPoints to an array of distances (int*)  
+               std::vector<int> distances;  
+               distances.reserve(laserScanPoints.size());  
+               for (const auto& point : laserScanPoints) {  
+                   distances.push_back(static_cast<int>(point.distance));  
+               }  
+
+               slam_->update(distances.data());  
+			   oldDistances = distances;
+			   firstLoad = true;
+               break;  
+           }  
+           case ldlidar::LidarStatus::DATA_TIME_OUT:  
+           {  
+               LOG_ERROR_LITE("Point cloud data timeout. Check your lidar device.", "");  
+               lidarDriver_->Stop();  
+               break;  
+           }  
+           case ldlidar::LidarStatus::DATA_WAIT:  
+               if (firstLoad)
+               {
+                   slam_->update(oldDistances.data());
                }
-
-               slam_->update(distances.data());
-               break;
-           }
-           case ldlidar::LidarStatus::DATA_TIME_OUT: 
-           {
-               LOG_ERROR_LITE("Point cloud data timeout. Check your lidar device.", "");
-               lidarDriver_->Stop();
-               break;
-           }
-           case ldlidar::LidarStatus::DATA_WAIT:
-               break;
-           default:
-               break;
-           }
-           std::this_thread::sleep_for(std::chrono::milliseconds(166)); // 6Hz
-       }
+               break;  
+           default:  
+               break;  
+           }  
+           std::this_thread::sleep_for(std::chrono::milliseconds(50));
+       }  
     }
 
     ldlidar::LDLidarDriverLinuxInterface* lidarDriver_;
