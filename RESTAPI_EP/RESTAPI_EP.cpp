@@ -20,6 +20,11 @@ static const double MAP_SIZE_METERS = 15;
 
 using json = nlohmann::json;
 
+int coords2index(double x, double y)
+{
+    return y * MAP_SIZE_PIXELS + x;
+}
+
 int mm2pix(double mm)
 {
     return (int)(mm / (MAP_SIZE_METERS * 1000. / MAP_SIZE_PIXELS));
@@ -52,11 +57,11 @@ int main() {
         return -1;
     }
 	LD20 laser(0, 0); // Inicjalizacja modelu lasera
-    SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, 100);
+    SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, rand());
     ((RMHC_SLAM*)slam)->map_quality = 10;
-    ((RMHC_SLAM*)slam)->hole_width_mm = 500;
+    ((RMHC_SLAM*)slam)->hole_width_mm = 400;
     ((RMHC_SLAM*)slam)->max_search_iter = 4000;
-    ((RMHC_SLAM*)slam)->sigma_xy_mm = 200;
+    ((RMHC_SLAM*)slam)->sigma_xy_mm = 300;
     ((RMHC_SLAM*)slam)->sigma_theta_degrees = 45;
     // Tworzenie obiektu do obs³ugi danych z lidara
     SLAMHandler lidarHandler(lidar_drv,slam);
@@ -85,22 +90,62 @@ int main() {
             response["points"].push_back({ {"x", point.x}, {"y", point.y} });
         }
         return crow::response(response.dump());
-        });
+    });
 
-    CROW_ROUTE(app, "/lidar/map").methods(crow::HTTPMethod::GET)([&lidarHandler]() {
-        
-        unsigned char* laser_scan_data = lidarHandler.GetMap();
+    // Endpoint do pobierania pozycji
+    CROW_ROUTE(app, "/position").methods(crow::HTTPMethod::GET)([&lidarHandler]() {
+        Position position = lidarHandler.GetPosition();
         json response;
-        response["map"] = json::array();
-        for (unsigned int y = 0; y < MAP_SIZE_PIXELS; ++y) {
-            json row = json::array();
-            for (unsigned int x = 0; x < MAP_SIZE_PIXELS; ++x) {
-                row.push_back(laser_scan_data[y * MAP_SIZE_PIXELS + x]);
-            }
-            response["map"].push_back(row);
-        }
+        response["x_mm"] = position.x_mm;
+        response["y_mm"] = position.y_mm;
+        response["theta_degrees"] = position.theta_degrees;
         return crow::response(response.dump());
     });
+
+    // WebSocket do przesy³ania danych mapy
+    CROW_WEBSOCKET_ROUTE(app, "/ws/map")
+        .onopen([&](crow::websocket::connection& conn) {
+        std::cout << "WebSocket map connection opened" << std::endl;
+        auto thread_info = std::make_shared<WebSocketThreadInfo>();
+        thread_info->thread = std::thread([&lidarHandler, &conn, thread_info]() {
+            try {
+                while (thread_info->running) {
+                    unsigned char* map_data = lidarHandler.GetMap();
+                    json response;
+                    response["map"] = json::array();
+                    for (unsigned int y = 0; y < MAP_SIZE_PIXELS; ++y) {
+                        json row = json::array();
+                        for (unsigned int x = 0; x < MAP_SIZE_PIXELS; ++x) {
+                            row.push_back(map_data[y * MAP_SIZE_PIXELS + x]);
+                        }
+                        response["map"].push_back(row);
+                    }
+                    if (!thread_info->running) break;
+                    conn.send_text(response.dump());
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Wolniejsza czêstotliwoœæ dla mapy
+                }
+            }
+            catch (const std::exception& e) {
+                std::cout << "WebSocket map error: " << e.what() << std::endl;
+            }
+            std::cout << "WebSocket map thread terminated" << std::endl;
+            });
+        std::lock_guard<std::mutex> lock(ws_threads_mutex);
+        ws_threads[&conn] = thread_info;
+            })
+        .onclose([&](crow::websocket::connection& conn, const std::string& reason) {
+        std::cout << "WebSocket map closed: " << reason << std::endl;
+        std::lock_guard<std::mutex> lock(ws_threads_mutex);
+        auto it = ws_threads.find(&conn);
+        if (it != ws_threads.end()) {
+            it->second->running = false;
+            if (it->second->thread.joinable()) it->second->thread.join();
+            ws_threads.erase(it);
+        }
+            })
+        .onmessage([](crow::websocket::connection& conn, const std::string& msg, bool is_binary) {
+        std::cout << "Received message from map client: " << msg << std::endl;
+            });
 
     CROW_ROUTE(app, "/arduino/send").methods(crow::HTTPMethod::POST)(
         [&arduino](const crow::request& req) {

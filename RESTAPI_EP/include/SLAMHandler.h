@@ -59,8 +59,8 @@ private:
            case ldlidar::LidarStatus::NORMAL:  
            {  
                std::lock_guard<std::mutex> lock(dataMutex_);  
-               if (laserScanPoints.size() > 666) {  
-                   laserScanPoints.resize(666);  
+               if (laserScanPoints.size() > 664) {  
+                   laserScanPoints.resize(664);  
                }  
                laserScanPoints_ = laserScanPoints;  
 
