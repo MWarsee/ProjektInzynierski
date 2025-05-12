@@ -56,12 +56,12 @@ int main() {
         std::cerr << "Failed to start lidar." << std::endl;
         return -1;
     }
-	LD20 laser(0, 0); // Inicjalizacja modelu lasera
+	LD20 laser(); // Inicjalizacja modelu lasera
     SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, rand());
-    ((RMHC_SLAM*)slam)->map_quality = 10;
+    ((RMHC_SLAM*)slam)->map_quality = 5;
     ((RMHC_SLAM*)slam)->hole_width_mm = 400;
     ((RMHC_SLAM*)slam)->max_search_iter = 4000;
-    ((RMHC_SLAM*)slam)->sigma_xy_mm = 300;
+    ((RMHC_SLAM*)slam)->sigma_xy_mm = 500;
     ((RMHC_SLAM*)slam)->sigma_theta_degrees = 45;
     // Tworzenie obiektu do obs³ugi danych z lidara
     SLAMHandler lidarHandler(lidar_drv,slam);
@@ -111,6 +111,12 @@ int main() {
             try {
                 while (thread_info->running) {
                     unsigned char* map_data = lidarHandler.GetMap();
+                    Position position = lidarHandler.GetPosition(); // Retrieve position data
+
+                    // Convert position to pixel coordinates
+                    int x_pixel = mm2pix(position.x_mm);
+                    int y_pixel = mm2pix(position.y_mm);
+
                     json response;
                     response["map"] = json::array();
                     for (unsigned int y = 0; y < MAP_SIZE_PIXELS; ++y) {
@@ -120,9 +126,17 @@ int main() {
                         }
                         response["map"].push_back(row);
                     }
+
+                    // Add position data in pixel coordinates to the response
+                    response["position"] = {
+                        {"x_pixel", x_pixel},
+                        {"y_pixel", y_pixel},
+                        {"theta_degrees", position.theta_degrees}
+                    };
+
                     if (!thread_info->running) break;
                     conn.send_text(response.dump());
-                    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Wolniejsza czêstotliwoœæ dla mapy
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Slower frequency for map updates
                 }
             }
             catch (const std::exception& e) {
