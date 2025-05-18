@@ -13,3 +13,5 @@ _deps
 /RESTAPI_EP/.vs
 /RESTAPI_EP/out
 /RESTAPI_EP/vcpkg_installed
+/ClientAPP/dist
+/ClientAPP/node_modules

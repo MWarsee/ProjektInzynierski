@@ -1,0 +1,21 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Maciej Wielgosz",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^36.0.1",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "ws": "^8.18.2"
+  }
+}
