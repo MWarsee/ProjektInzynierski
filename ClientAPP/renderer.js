@@ -581,6 +581,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
+    // Ensure gamepad is initialized after DOM is fully loaded
+    if (window.gamepadHandler && typeof window.gamepadHandler.initGamepad === 'function') {
+        console.log("Initializing gamepad support from renderer.js");
+        setTimeout(() => {
+            window.gamepadHandler.initGamepad();
+        }, 500); // Small delay to ensure all other scripts are loaded
+    } else {
+        console.warn("Gamepad handler not available!");
+    }
+    
     // Log initialization complete
     console.log('Application initialized successfully');
 });

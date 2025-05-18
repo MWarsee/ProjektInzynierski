@@ -60,7 +60,6 @@ private:
                 std::lock_guard<std::mutex> lock(dataMutex_);
                 laserScanPoints_ = laserScanPoints;
 
-                // Convert laserScanPoints to an array of distances (int*)
                 std::vector<int> distances;
                 distances.reserve(laserScanPoints.size());
                 for (const auto& point : laserScanPoints) {

@@ -47,10 +47,11 @@ function debounce(func, wait) {
     }
 }
 
-// Send command to Arduino/Robot
+// Send command to Arduino/Robot with improved error handling and logging
 async function sendDpadCommand(dataString) {
+    console.log(`Sending DPAD command to Arduino: ${dataString}`);
     try {
-        await fetch('http://raspberrypi.local:18080/arduino/send', {
+        const response = await fetch('http://raspberrypi.local:18080/arduino/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -59,8 +60,32 @@ async function sendDpadCommand(dataString) {
                 data: dataString
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        
+        const result = await response.text();
+        console.log(`Arduino command response: ${result}`);
+        addMessage(`Wysłano do Arduino: ${dataString}`, 'status');
+        return true;
     } catch (err) {
         console.error('Błąd wysyłania do Arduino:', err);
+        addMessage(`Błąd wysyłania do Arduino: ${err.message}`, 'error');
+        return false;
+    }
+}
+
+// Properly terminate WebSocket connections
+function cleanupWebSockets() {
+    try {
+        if (window.electronAPI) {
+            console.log('Terminating WebSocket connections...');
+            window.electronAPI.closeWebSocket();
+            window.electronAPI.closeGraymapWebSocket();
+        }
+    } catch (err) {
+        console.error('Error during WebSocket cleanup:', err);
     }
 }
 
@@ -71,5 +96,6 @@ window.utils = {
     addMessage,
     throttle,
     debounce,
-    sendDpadCommand
+    sendDpadCommand,
+    cleanupWebSockets
 };

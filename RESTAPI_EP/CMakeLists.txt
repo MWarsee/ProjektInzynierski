@@ -30,29 +30,29 @@ set(BREEZYSLAM_CPP_SOURCES
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   message(STATUS "Current platform: Linux")
   set(LDLIDAR_DRIVER_SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver_linux.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_dataprocess.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_protocol.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/log_module.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/network_socket_interface_linux.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/serial_interface_linux.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/sl_transform.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/slbf.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/tofbf.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver_linux.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_dataprocess.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_protocol.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/log_module.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/network_socket_interface_linux.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/serial_interface_linux.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/sl_transform.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/slbf.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/tofbf.cpp
   )
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   message(STATUS "Current platform: Windows")
   set(LDLIDAR_DRIVER_SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver_win.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_dataprocess.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_protocol.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/log_module.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/serial_interface_win.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/sl_transform.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/slbf.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/tofbf.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_driver_win.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_dataprocess.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/ldlidar_protocol.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/log_module.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/serial_interface_win.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/sl_transform.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/slbf.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ldlidar_driver/tofbf.cpp
   )
 else()
   message(STATUS "Other platform: ${CMAKE_SYSTEM_NAME}")
