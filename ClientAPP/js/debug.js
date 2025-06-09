@@ -1,5 +1,3 @@
-// This file handles debug functionality and WebSocket connections
-
 let debugHandler = {
     initDebug: function() {
         setupDebugHandlers();
@@ -7,7 +5,6 @@ let debugHandler = {
 };
 
 function setupDebugHandlers() {
-    // DOM Elements
     const connectButton = document.getElementById('connect-button');
     const disconnectButton = document.getElementById('disconnect-button');
     const connectGraymapButton = document.getElementById('connect-graymap-button');
@@ -19,11 +16,9 @@ function setupDebugHandlers() {
     const connectionStatus = document.getElementById('connection-status');
     const graymapConnectionStatus = document.getElementById('graymap-connection-status');
     
-    // State
     let connected = false;
     let graymapConnected = false;
     
-    // Button Event Listeners
     connectButton.addEventListener('click', () => {
         window.electronAPI.connectToWebSocket(window.utils.LIDAR_WS_URL);
     });
@@ -57,14 +52,12 @@ function setupDebugHandlers() {
         }
     });
     
-    // Fetch map button
     fetchMapButton.addEventListener('click', async () => {
         try {
             const response = await fetch('http://raspberrypi.local:18080/lidar/map');
             const json = await response.json();
             
             if (json.map && Array.isArray(json.map)) {
-                // Check for position data in HTTP response
                 if (json.position) {
                     const pos = {
                         x: json.position.x_pixel,
@@ -76,14 +69,12 @@ function setupDebugHandlers() {
                 } else {
                     window.mapHandler.drawGrayscaleMap(json.map, null);
                 }
-            } else {
             }
         } catch (err) {
             console.error('Błąd podczas pobierania mapy:', err);
         }
     });
     
-    // Update Connection State Helper Functions
     function updateConnectionState(isConnected) {
         connected = isConnected;
         connectButton.disabled = isConnected;
@@ -102,14 +93,11 @@ function setupDebugHandlers() {
         graymapConnectionStatus.style.color = isConnected ? 'green' : 'red';
     }
     
-    // Lidar WebSocket Event Handlers
     window.electronAPI.onConnected(() => {
         updateConnectionState(true);
     });
     
     window.electronAPI.onMessage((event, message) => {
-        
-        // Próba parsowania JSON i wyświetlenia punktów
         try {
             const data = JSON.parse(message);
             if (data.points && Array.isArray(data.points)) {
@@ -128,30 +116,22 @@ function setupDebugHandlers() {
         updateConnectionState(false);
     });
     
-    // Graymap WebSocket Event Handlers
     window.electronAPI.onGraymapConnected(() => {
         updateGraymapConnectionState(true);
     });
     
     window.electronAPI.onGraymapMessage((event, message) => {
-        
         try {
             const data = JSON.parse(message);
-            
-            // More detailed debugging
             console.log("Full graymap message received:", data);
             
             if (data.map && Array.isArray(data.map)) {
-                // Extract robot position data if available
                 if (data.position) {
-                    
                     const robotPosition = {
                         x: data.position.x_pixel,
                         y: data.position.y_pixel,
                         theta: data.position.theta_degrees
                     };
-                                        
-                    // Make sure we're passing position to the draw function
                     window.mapHandler.drawGrayscaleMap(data.map, robotPosition);
                 } else {
                     window.mapHandler.drawGrayscaleMap(data.map, null);
@@ -162,7 +142,6 @@ function setupDebugHandlers() {
         }
     });
     
-    // Add handler for explicit position debug info
     window.electronAPI.onPositionDebugInfo && window.electronAPI.onPositionDebugInfo((event, positionInfo) => {
         try {
             const posData = JSON.parse(positionInfo);
@@ -180,5 +159,4 @@ function setupDebugHandlers() {
     });
 }
 
-// Make debugHandler available globally
 window.debugHandler = debugHandler;

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <map>
 #include <ArduinoSerial.h>
+#include "RobotHandler.h"
 
 #include "breezySLAM/cpp/algorithms.hpp"
 #include "breezySLAM/cpp/Laser.hpp"
@@ -41,6 +42,9 @@ uint64_t GetTimestamp() {
         .count();
 }
 
+enum class RobotMode { MANUAL, EXPLORE };
+std::atomic<RobotMode> robot_mode{RobotMode::MANUAL};
+
 int main() {
     
     ldlidar::LDLidarDriverLinuxInterface* lidar_drv = ldlidar::LDLidarDriverLinuxInterface::Create();
@@ -54,8 +58,9 @@ int main() {
         std::cerr << "Failed to start lidar." << std::endl;
         return -1;
     }
-	LD20 laser(5,45); 
-    SinglePositionSLAM* slam = (SinglePositionSLAM*)new RMHC_SLAM(laser, MAP_SIZE_PIXELS, MAP_SIZE_METERS, 125);
+	LD20 ld20_lidar(4,45); 
+    SinglePositionSLAM* slam = (SinglePositionSLAM*)
+        new RMHC_SLAM(ld20_lidar, MAP_SIZE_PIXELS, MAP_SIZE_METERS, 125);
     ((RMHC_SLAM*)slam)->map_quality = 5;
     ((RMHC_SLAM*)slam)->hole_width_mm = 400;
     ((RMHC_SLAM*)slam)->max_search_iter = 2000;
@@ -69,6 +74,8 @@ int main() {
     if (!arduino.connect()) {
         std::cerr << "Failed to connect to Arduino." << std::endl;
     }
+
+    RobotHandler robotHandler(&lidarHandler, &arduino, MAP_SIZE_METERS, MAP_SIZE_PIXELS);
 
     std::map<crow::websocket::connection*, std::shared_ptr<WebSocketThreadInfo>> ws_threads;
     std::mutex ws_threads_mutex;
@@ -85,7 +92,7 @@ int main() {
         return crow::response(response.dump());
     });
 
-    CROW_ROUTE(app, "/position").methods(crow::HTTPMethod::GET)([&lidarHandler]() {
+    CROW_ROUTE(app, "/robot/position").methods(crow::HTTPMethod::GET)([&lidarHandler]() {
         Position position = lidarHandler.GetPosition();
         json response;
         response["x_mm"] = position.x_mm;
@@ -152,6 +159,9 @@ int main() {
 
     CROW_ROUTE(app, "/arduino/send").methods(crow::HTTPMethod::POST)(
         [&arduino](const crow::request& req) {
+            if (robot_mode != RobotMode::MANUAL) {
+                return crow::response(403, R"({"status":"error","reason":"Not in manual mode"})");
+            }
             try {
                 auto body = json::parse(req.body);
                 std::string cmd = body["data"];
@@ -163,6 +173,52 @@ int main() {
             }
         });
 
+    CROW_ROUTE(app, "/robot/target").methods(crow::HTTPMethod::POST)(
+        [&robotHandler](const crow::request& req) {
+            if (robot_mode != RobotMode::MANUAL) {
+                return crow::response(403, R"({"status":"error","reason":"Not in manual mode"})");
+            }
+            try {
+                auto body = json::parse(req.body);
+                int x_pixel = body.at("x_pixel");
+                int y_pixel = body.at("y_pixel");
+                std::cout << "[REST] Received /robot/target: x_pixel=" << x_pixel << " y_pixel=" << y_pixel << std::endl;
+                std::thread([&robotHandler, x_pixel, y_pixel]() {
+                    std::cout << "[REST] Calling robotHandler.goToTarget..." << std::endl;
+                    robotHandler.goToTarget(x_pixel, y_pixel);
+                    std::cout << "[REST] robotHandler.goToTarget finished." << std::endl;
+                }).detach();
+                return crow::response(200, R"({"status":"ok","msg":"Target received"})");
+            }
+            catch (const std::exception& e) {
+                std::cout << "[REST] Error in /robot/target: " << e.what() << std::endl;
+                return crow::response(400, std::string(R"({"status":"error","reason":")") + e.what() + "\"}");
+            }
+        });
+
+    CROW_ROUTE(app, "/robot/mode").methods(crow::HTTPMethod::POST)(
+        [&robotHandler](const crow::request& req) {
+            try {
+                auto body = json::parse(req.body);
+                std::string mode = body.at("mode");
+                if (mode == "manual") {
+                    robotHandler.stopExploration(); 
+                    robot_mode = RobotMode::MANUAL;
+                    return crow::response(200, R"({"status":"ok","mode":"manual"})");
+                } else if (mode == "explore") {
+                    robot_mode = RobotMode::EXPLORE;
+                    std::thread([&robotHandler]() {
+                        robotHandler.explore();
+                        robot_mode = RobotMode::MANUAL;
+                    }).detach();
+                    return crow::response(200, R"({"status":"ok","mode":"explore"})");
+                } else {
+                    return crow::response(400, R"({"status":"error","reason":"Invalid mode"})");
+                }
+            } catch (const std::exception& e) {
+                return crow::response(400, std::string(R"({"status":"error","reason":")") + e.what() + "\"}");
+            }
+        });
 
     CROW_WEBSOCKET_ROUTE(app, "/ws/lidar")
         .onopen([&](crow::websocket::connection& conn) {
@@ -214,7 +270,7 @@ int main() {
         }
         ws_threads.clear();
     }
-
+    
     lidarHandler.Stop();
     lidar_drv->Stop();
     lidar_drv->Disconnect();

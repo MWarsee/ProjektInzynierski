@@ -2,17 +2,14 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const WebSocket = require('ws');
 
-// Keep a reference to the main window
 let mainWindow;
 let wsClient = null;
 let graymapWsClient = null;
 
-// Buffer for batching map data
 let lastMapData = null;
 let mapUpdatePending = false;
-const MAP_UPDATE_INTERVAL = 200; // ms
+const MAP_UPDATE_INTERVAL = 200; 
 
-// Function to create the main window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -26,12 +23,10 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
   
-  // Set higher frame rate for smoother rendering
   if (mainWindow.webContents) {
     mainWindow.webContents.setFrameRate(60);
   }
   mainWindow.on('closed', () => {
-    // Close any open WebSocket connections when the window closes
     if (wsClient) {
       try {
         wsClient.terminate();
@@ -54,26 +49,22 @@ function createWindow() {
   });
 }
 
-// Initialize the app
 app.whenReady().then(() => {
   createWindow();
 });
 
-// Quit the app when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-// Recreate window when app icon is clicked (macOS)
 app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
 });
 
-// Throttled function to prevent overwhelming the renderer
 function sendGraymapDataThrottled(data) {
   if (!mapUpdatePending) {
     lastMapData = data;
@@ -86,12 +77,10 @@ function sendGraymapDataThrottled(data) {
       }
     }, MAP_UPDATE_INTERVAL);
   } else {
-    // Just update the latest data, will be sent when the timeout triggers
     lastMapData = data;
   }
 }
 
-// IPC handlers for WebSocket communication
 ipcMain.on('connect-websocket', (event, url) => {
   if (wsClient) {
     wsClient.close();
@@ -135,16 +124,15 @@ ipcMain.on('send-message', (event, message) => {
 ipcMain.on('close-websocket', () => {
   if (wsClient) {
     try {
-      wsClient.terminate();  // Force close the connection
+      wsClient.terminate();  
     } catch (error) {
       console.error('Error terminating websocket:', error);
     } finally {
-      wsClient = null;  // Always make sure to set to null
+      wsClient = null; 
     }
   }
 });
 
-// Graymap WebSocket handlers
 ipcMain.on('connect-graymap-websocket', (event, url) => {
   if (graymapWsClient) {
     graymapWsClient.close();
@@ -160,7 +148,6 @@ ipcMain.on('connect-graymap-websocket', (event, url) => {
 
   graymapWsClient.on('message', (data) => {
     if (mainWindow) {
-      // Using throttled function to prevent performance issues
       sendGraymapDataThrottled(data.toString());
     }
   });
@@ -183,11 +170,11 @@ ipcMain.on('connect-graymap-websocket', (event, url) => {
 ipcMain.on('close-graymap-websocket', () => {
   if (graymapWsClient) {
     try {
-      graymapWsClient.terminate();  // Force close the connection
+      graymapWsClient.terminate();  
     } catch (error) {
       console.error('Error terminating graymap websocket:', error);
     } finally {
-      graymapWsClient = null;  // Always make sure to set to null
+      graymapWsClient = null; 
     }
   }
 });

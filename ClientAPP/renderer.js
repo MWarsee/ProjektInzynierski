@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements - needed for the core functionality
     const connectButton = document.getElementById('connect-button');
     const disconnectButton = document.getElementById('disconnect-button');
     const connectGraymapButton = document.getElementById('connect-graymap-button');
@@ -18,12 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomOutButton = document.getElementById('zoom-out');
     const pointCountElement = document.getElementById('point-count');
     const fetchMapButton = document.getElementById('fetch-map');
+    const colorChangeButton = document.getElementById('color-change-button');
     
-    // Hardcoded WebSocket URLs
     const LIDAR_WS_URL = 'ws://raspberrypi.local:18080/ws/lidar';
     const GRAYMAP_WS_URL = 'ws://raspberrypi.local:18080/ws/map';
     
-    // Initialize shared utilities if they don't exist
     if (!window.utils) {
         window.utils = {
             LIDAR_WS_URL,
@@ -33,11 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     
-    // Create initialization objects if they don't exist
     if (!window.mapHandler) {
         window.mapHandler = {
             initMaps: function() {
-                // Maps module not loaded, use local canvas initialization
                 initCanvas();
                 setupMapControls();
             },
@@ -51,8 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.debugHandler) {
         window.debugHandler = {
             initDebug: function() {
-                // Debug module not loaded, use local debug initialization
-                setupDebugHandlers();
+            setupDebugHandlers();
             }
         };
     } else {
@@ -62,24 +57,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.gamepadHandler) {
         window.gamepadHandler = {
             initGamepad: function() {
-                // Gamepad module not loaded, use local gamepad initialization
-                setupGamepadHandlers();
+            setupGamepadHandlers();
             }
         };
     } else {
         window.gamepadHandler.initGamepad();
     }
     
-    // State variables
     let connected = false;
     let graymapConnected = false;
     let allPoints = [];
     let scale = 1;
     let offsetX = 0;
     let offsetY = 0;
-    let robotPosition = null; // Add this to store robot position
+    let robotPosition = null; 
     
-    // Initialize modules if not already initialized
     if (!window.modulesInitialized) {
         if (typeof window.mapHandler.initMaps === 'function') {
             window.mapHandler.initMaps();
@@ -103,9 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.modulesInitialized = true;
     }
     
-    // Add window event handlers for safe cleanup
     window.addEventListener('beforeunload', (event) => {
-        // Close WebSocket connections before unloading
         if (connected) {
             try {
                 window.electronAPI.closeWebSocket();
@@ -122,9 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
-    // Helper functions
-    
+        
     async function sendDpadCommand(dataString) {
       try {
         await fetch('http://raspberrypi.local:18080/arduino/send', {
@@ -169,11 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
       graymapConnectionStatus.textContent = isConnected ? 'Połączono' : 'Nie połączono';
       graymapConnectionStatus.style.color = isConnected ? 'green' : 'red';
     }
-    
-    // Module initialization functions
-    
+        
     function setupDebugHandlers() {
-        // Button Event Listeners
         connectButton.addEventListener('click', () => {
           window.electronAPI.connectToWebSocket(LIDAR_WS_URL);
         });
@@ -215,14 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
         
-        // Lidar WebSocket Event Handlers
         window.electronAPI.onConnected(() => {
           updateConnectionState(true);
         });
         
         window.electronAPI.onMessage((event, message) => {
           
-          // Próba parsowania JSON i wyświetlenia punktów
           try {
             const data = JSON.parse(message);
             if (data.points && Array.isArray(data.points)) {
@@ -242,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
           addMessage('Połączenie zostało zamknięte', 'status');
         });
         
-        // Graymap WebSocket Event Handlers
         window.electronAPI.onGraymapConnected(() => {
           updateGraymapConnectionState(true);
         });
@@ -252,11 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const data = JSON.parse(message);
             
-            // More detailed debugging
             console.log("Full graymap message:", data);
             
             if (data.map && Array.isArray(data.map)) {
-                // Extract robot position data if available
                 if (data.position) {
                     console.log("Full position data:", data.position);
                     
@@ -268,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     console.log("Extracted robot position:", robotPosition);
                     
-                    // Make sure we're passing position to the draw function
                     drawGrayscaleMap(data.map, robotPosition);
                 } else {
                     console.log("No position data in map message");
@@ -295,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const json = await response.json();
     
             if (json.map && Array.isArray(json.map)) {
-              // Check for position data in HTTP response
               if (json.position) {
                 const pos = {
                   x: json.position.x_pixel,
@@ -316,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function setupMapControls() {
-        // Map controls
         clearPointsButton.addEventListener('click', () => {
           allPoints = [];
           pointCountElement.textContent = `Punkty: 0`;
@@ -333,7 +310,23 @@ document.addEventListener('DOMContentLoaded', () => {
           redrawCanvas();
         });
         
-        // Canvas dragging
+        if (colorChangeButton) {
+          let isColorChanged = false;
+          colorChangeButton.addEventListener('click', () => {
+            isColorChanged = !isColorChanged;
+            
+            if (isColorChanged) {
+                colorChangeButton.style.backgroundColor = '#3498db';
+                colorChangeButton.style.color = 'white';
+                colorChangeButton.textContent = 'Tryb zwiedzania';
+            } else {
+                colorChangeButton.style.backgroundColor = '';
+                colorChangeButton.style.color = '';
+                colorChangeButton.textContent = 'Tryb manualny';
+            }
+          });
+        }
+        
         let isDragging = false;
         let lastX, lastY;
         
@@ -391,13 +384,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (gp) {
             let dpadPayload = '';
     
-            if (gp.buttons[12].pressed) { // Góra
+            if (gp.buttons[12].pressed) { 
               dpadPayload = '75;75;75;75';
-            } else if (gp.buttons[13].pressed) { // Dół
+            } else if (gp.buttons[13].pressed) { 
               dpadPayload = '-75;-75;-75;-75';
-            } else if (gp.buttons[14].pressed) { // Lewo
+            } else if (gp.buttons[14].pressed) { 
               dpadPayload = '-75;75;-75;75';
-            } else if (gp.buttons[15].pressed) { // Prawo
+            } else if (gp.buttons[15].pressed) {
               dpadPayload = '75;-75;75;-75';
             }
     
@@ -406,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
               sendDpadCommand(dpadPayload);
             }
     
-            // Reset, jeśli nic nie wciśnięte
             if (!gp.buttons[12].pressed && !gp.buttons[13].pressed && !gp.buttons[14].pressed && !gp.buttons[15].pressed) {
               if (lastDpadState !== '') {
                 lastDpadState = '';
@@ -429,33 +421,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function processPoints(points) {
-      // Dodajemy nowe punkty do istniejących
       allPoints = points;
       pointCountElement.textContent = `Punkty: ${allPoints.length}`;
       
-      // Rysujemy wszystkie punkty
       redrawCanvas();
     }
     
     function redrawCanvas() {
-      // Czyszczenie canvas
       ctx.fillStyle = '#f8f8f8';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Rysowanie siatki
       drawGrid();
       
-      // Środek canvas
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       
-      // Rysowanie punktów
       ctx.fillStyle = 'blue';
       for (const point of allPoints) {
         const screenX = centerX + (point.x * scale) + offsetX;
         const screenY = centerY - (point.y * scale) + offsetY; 
         
-        // Sprawdzamy czy punkt jest widoczny na canvas
         if (screenX >= 0 && screenX <= canvas.width && screenY >= 0 && screenY <= canvas.height) {
           ctx.beginPath();
           ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
@@ -463,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Rysowanie osi
       drawAxes();
     }
     
@@ -475,7 +459,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.strokeStyle = '#ddd';
       ctx.lineWidth = 0.5;
       
-      // Pionowe linie siatki
       for (let x = offsetGridX; x < canvas.width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -483,7 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.stroke();
       }
       
-      // Poziome linie siatki
       for (let y = offsetGridY; y < canvas.height; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
@@ -496,7 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const centerX = canvas.width / 2 + offsetX;
       const centerY = canvas.height / 2 + offsetY;
       
-      // Rysowanie osi X
       ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -504,14 +485,12 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.lineTo(canvas.width, centerY);
       ctx.stroke();
       
-      // Rysowanie osi Y
       ctx.strokeStyle = 'rgba(0, 128, 0, 0.5)';
       ctx.beginPath();
       ctx.moveTo(centerX, 0);
       ctx.lineTo(centerX, canvas.height);
       ctx.stroke();
       
-      // Rysowanie punktu (0,0)
       ctx.fillStyle = 'red';
       ctx.beginPath();
       ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
@@ -521,7 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawGrayscaleMap(mapData, position = null) {
       console.log("Drawing grayscale map with position:", position);
       
-      // Clear the canvas
       graymapCtx.clearRect(0, 0, graymapCanvas.width, graymapCanvas.height);
       graymapCtx.fillStyle = '#f8f8f8';
       graymapCtx.fillRect(0, 0, graymapCanvas.width, graymapCanvas.height);
@@ -529,16 +507,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const rows = mapData.length;
       const cols = mapData[0].length;
 
-      // Calculate scaling to fit the canvas
       const scaleX = graymapCanvas.width / cols;
       const scaleY = graymapCanvas.height / rows;
       const mapScale = Math.min(scaleX, scaleY);
       
-      // Calculate offsets to center the map
       const offsetX = (graymapCanvas.width - cols * mapScale) / 2;
       const offsetY = (graymapCanvas.height - rows * mapScale) / 2;
       
-      // Draw the map pixel by pixel
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           const value = mapData[y][x];
@@ -552,22 +527,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Draw robot position if available
       if (position) {
         console.log(`Drawing robot position at: (${position.x}, ${position.y})`);
         
-        // Calculate screen coordinates for the robot position
         const screenX = position.x * mapScale + offsetX;
         const screenY = position.y * mapScale + offsetY;
         const theta = position.theta * (Math.PI / 180); // Convert to radians
         
-        // Draw position dot
         graymapCtx.beginPath();
         graymapCtx.arc(screenX, screenY, 6, 0, Math.PI * 2);
         graymapCtx.fillStyle = 'red';
         graymapCtx.fill();
         
-        // Simple direction indicator
         const directionLength = 15; 
         const dirX = screenX + directionLength * Math.cos(theta);
         const dirY = screenY + directionLength * Math.sin(theta);
@@ -581,16 +552,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Ensure gamepad is initialized after DOM is fully loaded
     if (window.gamepadHandler && typeof window.gamepadHandler.initGamepad === 'function') {
         console.log("Initializing gamepad support from renderer.js");
         setTimeout(() => {
             window.gamepadHandler.initGamepad();
-        }, 500); // Small delay to ensure all other scripts are loaded
+        }, 500); 
     } else {
         console.warn("Gamepad handler not available!");
     }
     
-    // Log initialization complete
     console.log('Application initialized successfully');
 });

@@ -1,14 +1,9 @@
-// Utility functions and shared constants
-
-// WebSocket URLs
 const LIDAR_WS_URL = 'ws://raspberrypi.local:18080/ws/lidar';
 const GRAYMAP_WS_URL = 'ws://raspberrypi.local:18080/ws/map';
 
-// Add message to the message log - with limit to prevent memory issues
 function addMessage(text, type = '') {
     const messagesDiv = document.getElementById('messages');
     
-    // Limit messages to prevent performance degradation
     const MAX_MESSAGES = 50;
     while (messagesDiv.childElementCount > MAX_MESSAGES) {
         messagesDiv.removeChild(messagesDiv.firstChild);
@@ -22,7 +17,6 @@ function addMessage(text, type = '') {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Throttle function to limit how often a function can be called
 function throttle(func, limit) {
     let inThrottle;
     return function() {
@@ -36,7 +30,6 @@ function throttle(func, limit) {
     }
 }
 
-// Debounce function - execute after a delay
 function debounce(func, wait) {
     let timeout;
     return function() {
@@ -47,7 +40,6 @@ function debounce(func, wait) {
     }
 }
 
-// Send command to Arduino/Robot with improved error handling and logging
 async function sendDpadCommand(dataString) {
     console.log(`Sending DPAD command to Arduino: ${dataString}`);
     try {
@@ -76,7 +68,6 @@ async function sendDpadCommand(dataString) {
     }
 }
 
-// Properly terminate WebSocket connections
 function cleanupWebSockets() {
     try {
         if (window.electronAPI) {
@@ -89,7 +80,6 @@ function cleanupWebSockets() {
     }
 }
 
-// Export utils object
 window.utils = {
     LIDAR_WS_URL,
     GRAYMAP_WS_URL,

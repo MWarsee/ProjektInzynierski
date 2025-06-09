@@ -1,4 +1,3 @@
-// Gamepad test utility
 
 function testGamepad() {
     const gamepadStatusDiv = document.createElement('div');
@@ -23,7 +22,6 @@ function testGamepad() {
         gamepadStatusDiv.innerHTML = `Gamepad connected: ${e.gamepad.id}<br>Buttons: ${e.gamepad.buttons.length}<br>Axes: ${e.gamepad.axes.length}`;
         gamepadStatusDiv.style.background = 'rgba(0,128,0,0.7)';
         
-        // Start the gamepad loop
         requestAnimationFrame(updateGamepadStatus);
     });
 
@@ -51,7 +49,6 @@ function testGamepad() {
         }
         
         if (activeGamepad) {
-            // Show button states
             statusHTML += '<br>Buttons:<br>';
             for (let i = 0; i < activeGamepad.buttons.length; i++) {
                 const val = activeGamepad.buttons[i].value;
@@ -59,7 +56,6 @@ function testGamepad() {
                 statusHTML += `B${i}: ${pressed ? '<strong style="color:lime">PRESSED</strong>' : 'released'} (${val.toFixed(2)})<br>`;
             }
             
-            // Show axes
             statusHTML += '<br>Axes:<br>';
             for (let i = 0; i < activeGamepad.axes.length; i++) {
                 const val = activeGamepad.axes[i];
@@ -74,7 +70,6 @@ function testGamepad() {
     console.log("Gamepad test utility loaded. Connect a gamepad to see button status.");
 }
 
-// Add a button to toggle the gamepad test
 function addGamepadTestButton() {
     const button = document.createElement('button');
     button.textContent = 'Test Gamepad';
@@ -86,7 +81,6 @@ function addGamepadTestButton() {
     document.body.appendChild(button);
 }
 
-// Initialize when the document is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', addGamepadTestButton);
 } else {
