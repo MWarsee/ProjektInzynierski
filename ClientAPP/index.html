@@ -2,14 +2,13 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Aplikacja Electron z WebSocketami</title>
+  <title>Aplikacja obsługi robota mobilnego</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       margin: 20px;
     }
     
-    /* Tab Styles */
     .tab-container {
       overflow: hidden;
       border: 1px solid #ccc;
@@ -64,6 +63,31 @@
       font-size: 16px;
     }
     
+    /* Canvas controls positioning */
+    .canvas-controls {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    /* Connection controls styling */
+    .connection-controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .connection-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
     /* Original styles */
     #messages {
       height: 150px;
@@ -99,34 +123,50 @@
       width: 100%;
       display: block;
     }
-    .canvas-controls {
-      margin-bottom: 10px;
-    }
     #tab-visualization {
       display: block;
     }
   </style>
 </head>
 <body>
-  <h1>Aplikacja WebSocket z Mapą 2D</h1>
+  <h1>Aplikacja obsługi robota mobilnego</h1>
   
   <div class="tab-container">
     <button class="tab-button active" onclick="openTab(event, 'tab-visualization')">Wizualizacja</button>
     <button class="tab-button" onclick="openTab(event, 'tab-debug')">Debug</button>
   </div>
+    <div class="connection-controls">
+      <div class="connection-group">
+        <span>LiDAR:</span>
+        <button id="connect-button">Połącz</button>
+        <button id="disconnect-button" disabled>Rozłącz</button>
+        <span id="connection-status">Nie połączono</span>
+      </div>
+      
+      <div class="connection-group">
+        <span>GrayMap:</span>
+        <button id="connect-graymap-button">Połącz</button>
+        <button id="disconnect-graymap-button" disabled>Rozłącz</button>
+        <span id="graymap-connection-status">Nie połączono</span>
+      </div>
+      
+      <div class="connection-group">
+        <button id="fetch-map">Pobierz mapę</button>
+        <button id="color-change-button">Tryb manualny</button>
+      </div>
+    </div>
+  </div>
   
-  <!-- Visualization Tab -->
   <div id="tab-visualization" class="tab-content">
-    <div class="canvas-controls">
-      <button id="clear-points">Wyczyść punkty</button>
-      <button id="zoom-in">Powiększ</button>
-      <button id="zoom-out">Pomniejsz</button>
-      <span id="point-count">Punkty: 0</span>
-    </div>  
-    
     <div class="maps-container">
       <div class="map-box">
         <h3 class="map-title">Mapa punktowa LiDAR</h3>
+        <div class="canvas-controls">
+          <button id="clear-points">Wyczyść punkty</button>
+          <button id="zoom-in">Powiększ</button>
+          <button id="zoom-out">Pomniejsz</button>
+          <span id="point-count">Punkty: 0</span>
+        </div>
         <canvas id="point-canvas" width="600" height="500"></canvas>
       </div>
       
@@ -135,23 +175,10 @@
         <canvas id="graymap-canvas" width="600" height="500"></canvas>
       </div>
     </div>
-  </div>
-  
-  <!-- Debug Tab -->
-  <div id="tab-debug" class="tab-content">
-    <div class="connection-form">
-      <span>LiDAR WebSocket: ws://raspberrypi.local:18080/ws/lidar</span>
-      <button id="connect-button">Połącz</button>
-      <button id="disconnect-button" disabled>Rozłącz</button>
-      <span id="connection-status">Nie połączono</span>
-    </div>
     
-    <div class="connection-form">
-      <span>GrayMap WebSocket: ws://raspberrypi.local:18080/ws/map</span>
-      <button id="connect-graymap-button">Połącz</button>
-      <button id="disconnect-graymap-button" disabled>Rozłącz</button>
-      <span id="graymap-connection-status">Nie połączono</span>
-    </div>
+    
+  
+  <div id="tab-debug" class="tab-content">
     
     <div id="messages"></div>
     
@@ -159,31 +186,25 @@
       <input type="text" id="message-input" placeholder="Wpisz wiadomość" disabled>
       <button id="send-button" disabled>Wyślij</button>
     </div>
-    
-    <button id="fetch-map">Pobierz mapę (obraz)</button>
   </div>
 
   <script>
     function openTab(evt, tabName) {
-      // Hide all tab content
       const tabcontent = document.getElementsByClassName("tab-content");
       for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
       }
       
-      // Remove active class from all tab buttons
       const tablinks = document.getElementsByClassName("tab-button");
       for (let i = 0; i < tablinks.length; i++) {
         tablinks[i].className = tablinks[i].className.replace(" active", "");
       }
       
-      // Show current tab and add active class to button
       document.getElementById(tabName).style.display = "block";
       evt.currentTarget.className += " active";
     }
   </script>
   
-  <!-- Include JavaScript modules -->
   <script src="js/utils.js"></script>
   <script src="js/maps.js"></script>
   <script src="js/gamepad.js"></script>

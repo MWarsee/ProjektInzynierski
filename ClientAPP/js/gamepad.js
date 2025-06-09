@@ -1,16 +1,12 @@
-// Gamepad support module
-
 let gamepadIndex = null;
 let lastDpadState = '';
 let gamepadLoopActive = false;
 
-// Initialize gamepad listeners
 function initGamepad() {
   console.log("Initializing gamepad support...");
   window.addEventListener('gamepadconnected', handleGamepadConnected);
   window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
   
-  // Check if a gamepad is already connected (happens if gamepad was connected before page load)
   checkForGamepad();
 }
 
@@ -65,7 +61,6 @@ function updateGamepad() {
     if (gp && gp.connected) {
       let dpadPayload = '';
 
-      // Check DPAD buttons (standard mapping)
       if (gp.buttons[12] && gp.buttons[12].pressed) { // Up
         console.log("DPAD UP pressed");
         dpadPayload = '75;75;75;75';
@@ -80,7 +75,6 @@ function updateGamepad() {
         dpadPayload = '75;-75;75;-75';
       }
 
-      // Send the command if it's changed from the last state
       if (dpadPayload && dpadPayload !== lastDpadState) {
         console.log(`Sending DPAD command: ${dpadPayload}`);
         lastDpadState = dpadPayload;
@@ -92,7 +86,6 @@ function updateGamepad() {
         }
       }
 
-      // Reset if no buttons are pressed
       if (!gp.buttons[12].pressed && !gp.buttons[13].pressed && 
           !gp.buttons[14].pressed && !gp.buttons[15].pressed) {
         if (lastDpadState !== '') {
@@ -107,7 +100,6 @@ function updateGamepad() {
         }
       }
       
-      // Continue the loop
       requestAnimationFrame(updateGamepad);
     } else {
       console.log("Gamepad disconnected or not available");
@@ -119,7 +111,6 @@ function updateGamepad() {
   }
 }
 
-// Export functions to make them available to other modules
 window.gamepadHandler = {
   initGamepad
 };

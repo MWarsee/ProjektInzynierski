@@ -2,11 +2,14 @@
 #include <boost/asio.hpp>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 class ArduinoSerial {
 public:
     ArduinoSerial(const std::string& port, unsigned int baudrate)
-        : io_(), serial_(io_), port_name_(port), baudrate_(baudrate) {
+        : io_(), serial_(io_), port_name_(port), baudrate_(baudrate),
+          wheel_diameter_mm_(60.0), rpm_(100) // default: 65mm wheel, 60 obr/min
+    {
     }
 
     ~ArduinoSerial() {
@@ -31,6 +34,7 @@ public:
     }
 
     bool send(const std::string& data) {
+        std::cout << "[ArduinoSerial] send: " << data;
         if (!serial_.is_open()) return false;
 
         std::string msg = data + "\n";
@@ -38,6 +42,7 @@ public:
         boost::asio::write(serial_, boost::asio::buffer(msg), ec);
         if (ec) {
             std::cerr << "B³¹d podczas wysy³ania: " << ec.message() << std::endl;
+            std::cerr << "[ArduinoSerial] send failed!" << std::endl;
             return false;
         }
         return true;
@@ -65,33 +70,58 @@ public:
 
     void disconnect() {
         if (serial_.is_open()) {
+			stop();
             serial_.close();
         }
     }
 
-	bool forward() {
-		return send("forward");
-	}
+    bool forward() {
+        std::cout << "[ArduinoSerial] Sending: FORWARD" << std::endl;
+        return send("50;50;50;50");
+    }
 
-	bool backward() {
-		return send("backward");
-	}
+    bool backward() {
+        std::cout << "[ArduinoSerial] Sending: BACKWARD" << std::endl;
+        return send("-50;-50;-50;-50");
+    }
 
-	bool stop() {
-		return send("stop");
-	}
+    bool stop() {
+        std::cout << "[ArduinoSerial] Sending: STOP" << std::endl;
+        return send("0;0;0;0");
+    }
 
-	bool turnLeft() {
-		return send("turn_left");
-	}
+    bool turnLeft() {
+        std::cout << "[ArduinoSerial] Sending: LEFT" << std::endl;
+        return send("50;-50;50;-50");
+    }
 
-	bool turnRight() {
-		return send("turn_right");
-	}
+    bool turnRight() {
+        std::cout << "[ArduinoSerial] Sending: RIGHT" << std::endl;
+        return send("-50;50;-50;50");
+    }
+
+    void setWheelDiameter(double mm) { wheel_diameter_mm_ = mm; }
+    void setRPM(double rpm) { rpm_ = rpm; }
+
+    double calculateForwardTime(double distance_mm) const {
+
+        double wheel_circ = M_PI * wheel_diameter_mm_;
+        double rotations = distance_mm / wheel_circ;
+        double time_sec = rotations / (rpm_ / 60.0);
+        return time_sec;
+    }
+
+    double calculateTurnTime(double angle_deg, double robot_width_mm) const {
+        double arc_mm = (M_PI * robot_width_mm) * (angle_deg / 360.0);
+        return calculateForwardTime(arc_mm);
+    }
 
 private:
     boost::asio::io_service io_;
     boost::asio::serial_port serial_;
     std::string port_name_;
     unsigned int baudrate_;
+
+    double wheel_diameter_mm_;
+    double rpm_;
 };
