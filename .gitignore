@@ -15,3 +15,5 @@ _deps
 /RESTAPI_EP/vcpkg_installed
 /ClientAPP/dist
 /ClientAPP/node_modules
+/RESTAPI_EP/licenses
+/RESTAPI_EP/licenses/BreezySLAM/LICENSE.md
